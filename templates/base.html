@@ -14,23 +14,54 @@
         {% endif %}
   </head>
   <style>
-
- .jumbotron {
-            background-color: #f4991e; /* Orange */
-            color: #031f0b;
-          }
-.wrapper {
-    text-align: center;
-}
-.button {
-    position: absolute;
-    top: 50%;
-}
 </style>
-
   <body>
-    <div class="jumbotron text-center">
+    <nav class="navbar navbar-expand-lg navbar-dark fixed-top bg-dark">
+        <ul class="navbar-nav mr-auto">
+      <li class="nav-item dropdown">
+        <a class="nav-link dropdown-toggle" href="#" id="navbarDropdown" role="button" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+          RSA
+        </a>
+        <div class="dropdown-menu" aria-labelledby="navbarDropdown">
+          <a class="dropdown-item" href="#">Generate Private Key </a>
+          <div class="dropdown-divider"></div>
+          <a class="dropdown-item" href="#">Create Digital Signature</a>
+          <a class="dropdown-item" href="#">Verify Digital Signature</a>
+        </div>
+      </li>
+      <li class="nav-item dropdown">
+        <a class="nav-link dropdown-toggle" href="#" id="12" role="button" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+         Certificate
+        </a>
+        <div class="dropdown-menu" aria-labelledby="navbarDropdown">
+          <a class="dropdown-item" href="#">Create CA Certificate</a>
+          <a class="dropdown-item" href="#">Create Certificate</a>
+        </div>
+      </li>
+       <li class="nav-item dropdown">
+        <a class="nav-link dropdown-toggle" href="#" id="12" role="button" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+         Message Authentication Code
+        </a>
+        <div class="dropdown-menu" aria-labelledby="navbarDropdown">
+          <a class="dropdown-item" href="#">Create Sha Tag</a>
+          <a class="dropdown-item" href="#">Create HMAC</a>
+        </div>
+      </li>
+        <li class="nav-item dropdown">
+        <a class="nav-link dropdown-toggle" href="#" id="12" role="button" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+         AES
+        </a>
+        <div class="dropdown-menu" aria-labelledby="navbarDropdown">
+          <a class="dropdown-item" href="#">Encryption</a>
+          <a class="dropdown-item" href="#">Decryption</a>
+        </div>
+      </li>
+    </ul>
+    </nav>
+    <div class="jumbotron ">
     <h1><b></b>Crypto Tools</b></h1>
+      <p class="lead">A simple tool for main cryptographic operations. Just click and download the requested operation output!</p>
+      <p class="lead">Based on python cryptography and openSSL libraries. </p>
     </div>
       {% with messages = get_flashed_messages() %}
         {% if messages %}
@@ -48,8 +79,8 @@
         {% endblock %}
     <!-- Optional JavaScript -->
     <!-- jQuery first, then Popper.js, then Bootstrap JS -->
-   <!--  <script src="https://code.jquery.com/jquery-3.3.1.slim.min.js" integrity="sha384-q8i/X+965DzO0rT7abK41JStQIAqVgRVzpbzo5smXKp4YfRvH+8abtTE1Pi6jizo" crossorigin="anonymous"></script> -->
-   <!-- <script src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.14.7/umd/popper.min.js" integrity="sha384-UO2eT0CpHqdSJQ6hJty5KVphtPhzWj9WO1clHTMGa3JDZwrnQq4sF86dIHNDz0W1" crossorigin="anonymous"></script> -->
+    <script src="{{ url_for('static', filename='js/jquery-3.3.1.slim.min.js') }}" > </script>
+    <script src="{{ url_for('static', filename='js/popper.min.js') }}" > </script>
     <script src="{{ url_for('static', filename='js/bootstrap.min.js') }}" ></script>
   </body>
 </html>
