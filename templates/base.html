@@ -14,24 +14,28 @@
         {% endif %}
   </head>
   <style>
+     body {
+        padding-top: 85px;
+    }
 </style>
   <body>
     <nav class="navbar navbar-expand-lg navbar-dark fixed-top bg-dark">
         <ul class="navbar-nav mr-auto">
       <li class="nav-item dropdown">
         <a class="nav-link dropdown-toggle" href="#" id="navbarDropdown" role="button" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
-          RSA
+          Public-key Crypto
         </a>
         <div class="dropdown-menu" aria-labelledby="navbarDropdown">
-          <a class="dropdown-item" href="#">Generate Private Key </a>
+          <a class="dropdown-item" href="{{ url_for('generate_RSA_key_pair') }}" >Generate RSA Key pair</a>
+            <a class="dropdown-item" href="{{ url_for('generate_ECC_key_pair') }}">Generate ECC Key pair</a>
           <div class="dropdown-divider"></div>
-          <a class="dropdown-item" href="#">Create Digital Signature</a>
+          <a class="dropdown-item" href="{{ url_for('DS_sign') }}">Create Digital Signature</a>
           <a class="dropdown-item" href="#">Verify Digital Signature</a>
         </div>
       </li>
       <li class="nav-item dropdown">
         <a class="nav-link dropdown-toggle" href="#" id="12" role="button" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
-         Certificate
+         PKI
         </a>
         <div class="dropdown-menu" aria-labelledby="navbarDropdown">
           <a class="dropdown-item" href="#">Create CA Certificate</a>
@@ -40,7 +44,7 @@
       </li>
        <li class="nav-item dropdown">
         <a class="nav-link dropdown-toggle" href="#" id="12" role="button" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
-         Message Authentication Code
+         Hash\MAC
         </a>
         <div class="dropdown-menu" aria-labelledby="navbarDropdown">
           <a class="dropdown-item" href="#">Create Sha Tag</a>
@@ -52,18 +56,15 @@
          AES
         </a>
         <div class="dropdown-menu" aria-labelledby="navbarDropdown">
-          <a class="dropdown-item" href="#">Encryption</a>
-          <a class="dropdown-item" href="#">Decryption</a>
+            <a class="dropdown-item" href="#">Generate AES Key</a>
+          <div class="dropdown-divider"></div>
+          <a class="dropdown-item" href="#">AES Encryption</a>
+          <a class="dropdown-item" href="#">AES Decryption</a>
         </div>
       </li>
     </ul>
     </nav>
-    <div class="jumbotron ">
-    <h1><b></b>Crypto Tools</b></h1>
-      <p class="lead">A simple tool for main cryptographic operations. Just click and download the requested operation output!</p>
-      <p class="lead">Based on python cryptography and openSSL libraries. </p>
-    </div>
-      {% with messages = get_flashed_messages() %}
+    {% with messages = get_flashed_messages() %}
         {% if messages %}
           <ul class=flashes>
           {% for message in messages %}
@@ -75,8 +76,17 @@
            </ul>
         {% endif %}
       {% endwith %}
-        {% block content %}
+
+            {% block content %}
+    <div class="jumbotron ">
+    <h1><b></b>Crypto Tools</b></h1>
+      <p class="lead">A simple tool for main cryptographic operations. Just click and download the requested operation output!</p>
+      <p class="lead">Based on python cryptography and openSSL libraries. </p>
+    </div>
+
+
         {% endblock %}
+
     <!-- Optional JavaScript -->
     <!-- jQuery first, then Popper.js, then Bootstrap JS -->
     <script src="{{ url_for('static', filename='js/jquery-3.3.1.slim.min.js') }}" > </script>

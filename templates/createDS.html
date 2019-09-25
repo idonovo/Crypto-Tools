@@ -1,9 +1,16 @@
 {% extends "base.html" %}
 {% block content %}
-<div align="center"><h3>RSA Encryption</h3> </div>
+<div align="center"><h3>Create Digital Signature</h3> </div>
 <span>
     <div class="container" align="left" style="padding-top:30px;padding-bottom:30px">
         <form method=post enctype=multipart/form-data>
+            <div class="form-group">
+                <label for="CryptosystemSelector">Select Cryptosystem</label>
+                <select name="CryptosystemSelector" class="form-control" id="CryptosystemSelector">
+                  <option>RSA</option>
+                  <option>ECC</option>
+                </select>
+              </div>
               <div class="form-group">
                 <label for="DigestSelector">Select Digest</label>
                 <select name="DigestSelector" class="form-control" id="DigestSelector">
