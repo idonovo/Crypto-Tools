@@ -5,8 +5,9 @@ from flask import Flask, flash, request, redirect, url_for, render_template, sen
 from werkzeug.utils import secure_filename
 from cryptography.hazmat.backends import default_backend
 from cryptography.hazmat.primitives import serialization
-from cryptography.hazmat.primitives import hashes
+from cryptography.hazmat.primitives import hashes, hmac
 from cryptography.hazmat.primitives.asymmetric import padding, rsa, ec
+from cryptography.exceptions import InvalidSignature
 
 app = Flask(__name__)
 app.config['SECRET_KEY'] = '1234'
@@ -19,6 +20,36 @@ folders = {
 ALLOWED_EXTENSIONS = set(['pem'])
 app.config['UPLOAD_FOLDER'] = folders['UPLOAD_FOLDER']
 
+SHA_DIC={'SHA2' : {
+            '224': hashes.SHA224(),
+            '256': hashes.SHA256(),
+            '384': hashes.SHA384(),
+            '512': hashes.SHA512(),
+        },
+        'SHA3' : {
+            '224': hashes.SHA3_224(),
+            '256': hashes.SHA3_256(),
+            '384': hashes.SHA3_384(),
+            '512': hashes.SHA3_512(),
+}}
+
+
+def verify_sign(inputbuf, keybuf, signbuf, digest, ecosystem):
+    pkey = serialization.load_pem_public_key(keybuf ,backend=default_backend())
+    hash = hashes.SHA256() if digest == 'SHA256' else hashes.SHA512()
+
+    try:
+        if ecosystem == 'RSA':
+            pkey.verify( signbuf,inputbuf, padding.PSS( mgf = padding.MGF1(hashes.SHA256())
+                                                ,salt_length = padding.PSS.MAX_LENGTH), hash)
+        else:
+            pkey.verify(signbuf, inputbuf, ec.ECDSA(hash))
+
+    except InvalidSignature:
+        return 'Verification Failed'
+
+    return 'Verification Succeed'
+
 def generate_sign(key,input,digest, sign_name, ecosysyem):
 
     private_key = serialization.load_pem_private_key(
@@ -26,7 +57,7 @@ def generate_sign(key,input,digest, sign_name, ecosysyem):
         password=None,
         backend=default_backend()
     )
-    hash =  hashes.SHA256() if digest == 'Sha256' else hashes.SHA512()
+    hash =  hashes.SHA256() if digest == 'SHA256' else hashes.SHA512()
 
     if ecosysyem == 'RSA':
         signature = private_key.sign(input,
@@ -148,6 +179,129 @@ def generate_ECC_key_pair():
         return result
 
     return render_template('ECCkeypair.html')
+
+
+@app.route('/verifyDS', methods=['GET', 'POST'])
+def DS_verify():
+    if request.method == 'POST':
+        # check if the post request has the file part
+        if 'file' not in request.files or 'key' not in request.files or 'sign' not in request.files:
+            flash('No file\key\sign part')
+            return redirect(request.url)
+        ecosystem = request.form['CryptosystemSelector']
+        input = request.files['file']
+        key = request.files['key']
+        digest = request.form['DigestSelector']
+        sign = request.files['sign']
+
+        #input validation
+        if  key.filename == '':
+            flash('No selected key file')
+            return redirect(request.url)
+
+        if input.filename == '':
+            flash('No selected input file')
+            return redirect(request.url)
+
+        if sign.filename == '':
+            flash('No selected signature file')
+            return redirect(request.url)
+
+
+        if not allowed_file(key.filename):
+            flash('Invalid key format. Valid extensions are: ' + str(ALLOWED_EXTENSIONS))
+            return redirect(request.url)
+
+        inputbuf = input.read()
+        keybuf = key.read()
+        signbuf = sign.read()
+
+        if (str(keybuf).find('BEGIN RSA PRIVATE KEY') != -1 and ecosystem == 'ECC') or\
+                (str(keybuf).find('BEGIN EC PRIVATE KEY') != -1 and ecosystem == 'RSA'):
+            flash('Wrong key type for chosen cryptosystem')
+            return redirect(request.url)
+
+        res = verify_sign(inputbuf, keybuf, signbuf, digest, ecosystem)
+        flash('Verification Result: ' + res)
+        return redirect(request.url)
+
+    return render_template('verifyDS.html')
+
+@app.route('/CreateHASH', methods=['GET', 'POST'])
+def generate_hash():
+    if request.method == 'POST':
+        # check if the post request has the file part
+        if 'file' not in request.files:
+            flash('No file part')
+            return redirect(request.url)
+
+
+        input = request.files['file']
+        HashSelector = request.form['HashSelector']
+        FamilySelector = request.form['FamilySelector']
+        hash_file_name = request.form['hash_name'] + '.txt' if not request.form['hash_name'] == '' else FamilySelector + '_'+HashSelector + '.txt'
+
+        if input.filename == '':
+            flash('No selected input file')
+            return redirect(request.url)
+
+        inputbuf = input.read()
+        selected_hash= SHA_DIC[FamilySelector][HashSelector]
+
+        digest = hashes.Hash(selected_hash, backend=default_backend())
+        digest.update(inputbuf)
+
+        with open(hash_file_name, 'w+') as hash_file:
+            res = digest.finalize().hex()
+            hash_file.write(res)
+
+        sha_path = shutil.move(hash_file.name, folders['Archive'] + hash_file.name)
+        result = send_file(sha_path, as_attachment=True,
+                           attachment_filename=hash_file_name)
+        return result
+
+    return render_template('createHASH.html')
+
+@app.route('/CreateHMAC', methods=['GET', 'POST'])
+def generate_hmac():
+    if request.method == 'POST':
+        # check if the post request has the file part
+        if 'file' not in request.files:
+            flash('No file part')
+            return redirect(request.url)
+
+
+        input = request.files['file']
+        key =  request.files['key']
+        HashSelector = request.form['HashSelector']
+        FamilySelector = request.form['FamilySelector']
+        sign_file_name = request.form['sign_name'] + '.txt' if not request.form['sign_name'] == '' else 'HMAC_' + FamilySelector + '_'+ HashSelector + '.txt'
+
+        if input.filename == '':
+            flash('No selected input file')
+            return redirect(request.url)
+
+        if key.filename == '':
+            flash('No selected key file')
+            return redirect(request.url)
+
+        inputbuf = input.read()
+        keybuf = input.read()
+        selected_hash= SHA_DIC[FamilySelector][HashSelector]
+
+        h = hmac.HMAC(keybuf, selected_hash, backend=default_backend())
+        h.update(inputbuf)
+
+        with open(sign_file_name, 'w+') as sign_file:
+            res = h.finalize().hex()
+            sign_file.write(res)
+
+        sha_path = shutil.move(sign_file.name, folders['Archive'] + sign_file.name)
+        result = send_file(sha_path, as_attachment=True,
+                           attachment_filename=sign_file_name)
+        return result
+
+    return render_template('CreateHMAC.html')
 
 
 if __name__ == '__main__':

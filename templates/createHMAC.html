@@ -1,0 +1,40 @@
+{% extends "base.html" %}
+{% block content %}
+<div align="center"><h3>Create HMAC Tag</h3> </div>
+<span>
+    <div class="container" align="left" style="padding-top:30px;padding-bottom:30px">
+        <form method=post enctype=multipart/form-data>
+            <div class="form-group">
+                <label for="FamilySelector">Select Hash Family</label>
+                <select name="FamilySelector" class="form-control" id="FamilySelector">
+                  <option>SHA2</option>
+                    <option>SHA3</option>
+                </select>
+              </div>
+            <div class="form-group">
+                <label for="HashSelector">Select Hash Size</label>
+                <select name="HashSelector" class="form-control" id="HashSelector">
+                  <option>224</option>
+                  <option>256</option>
+                    <option>384</option>
+                    <option>512</option>
+                </select>
+              </div>
+            <div class="form-group">
+                    <label for="key">Select Key File</label>
+                    <input type="file" class="form-control-file" name=key id="key">
+              </div>
+             <div class="form-group">
+                    <label for="file input">Select Input File</label>
+                    <input type="file" class="form-control-file" name=file id="file input">
+              </div>
+                <div class="form-group">
+                    <label for="sign_name">Signature File Name</label>
+                    <input name="sign_name" class="form-control" id="sign_name" placeholder="Enter signature file name">
+                </div>
+                <input type=submit value=Send>
+        </form>
+    </div>
+</span>
+
+{% endblock %}l>>

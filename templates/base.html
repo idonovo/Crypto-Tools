@@ -16,6 +16,8 @@
   <style>
      body {
         padding-top: 85px;
+        background-image: url("D:\CryptoTools\Crypto-Tools\static\computer.jpg");
+        background-color: #cccccc;
     }
 </style>
   <body>
@@ -30,7 +32,7 @@
             <a class="dropdown-item" href="{{ url_for('generate_ECC_key_pair') }}">Generate ECC Key pair</a>
           <div class="dropdown-divider"></div>
           <a class="dropdown-item" href="{{ url_for('DS_sign') }}">Create Digital Signature</a>
-          <a class="dropdown-item" href="#">Verify Digital Signature</a>
+          <a class="dropdown-item" href="{{ url_for('DS_verify') }}">Verify Digital Signature</a>
         </div>
       </li>
       <li class="nav-item dropdown">
@@ -47,8 +49,10 @@
          Hash\MAC
         </a>
         <div class="dropdown-menu" aria-labelledby="navbarDropdown">
-          <a class="dropdown-item" href="#">Create Sha Tag</a>
-          <a class="dropdown-item" href="#">Create HMAC</a>
+          <a class="dropdown-item" href="{{ url_for('generate_hash') }}">Create Sha Tag</a>
+            <div class="dropdown-divider"></div>
+          <a class="dropdown-item" href="{{ url_for('generate_hmac') }}">Create HMAC</a>
+            <a class="dropdown-item" href="{{ url_for('generate_hmac') }}">Verify HMAC</a>
         </div>
       </li>
         <li class="nav-item dropdown">
