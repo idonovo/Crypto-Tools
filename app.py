@@ -50,7 +50,7 @@ def cleanup_archive():
     for f in filelist:
         os.remove(os.path.join(folders['Archive'], f))
 
-
+tl.start()
 
 
 
@@ -500,7 +500,3 @@ def AES_dec():
         return result
 
     return render_template('AESDec.html')
-
-if __name__ == '__main__':
-    tl.start()
-    app.run(port=5000, debug=True)
