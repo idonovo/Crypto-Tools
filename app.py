@@ -2,23 +2,26 @@ import os
 import shutil
 from zipfile import ZipFile
 from flask import Flask, flash, request, redirect, url_for, render_template, send_file
-from werkzeug.utils import secure_filename
 from cryptography.hazmat.backends import default_backend
 from cryptography.hazmat.primitives import serialization
 from cryptography.hazmat.primitives import hashes, hmac
 from cryptography.hazmat.primitives.asymmetric import padding, rsa, ec
-from cryptography.exceptions import InvalidSignature
+from cryptography.exceptions import InvalidSignature,InvalidTag
+from cryptography.hazmat.primitives.ciphers import Cipher, algorithms, modes
+from cryptography.hazmat.primitives.ciphers.aead import AESGCM
+import time
+from timeloop import Timeloop
+from datetime import timedelta
+
 
 app = Flask(__name__)
 app.config['SECRET_KEY'] = '1234'
 folders = {
-    'UPLOAD_FOLDER': 'D:\CryptoTools\Crypto-Tools\Temp\\',
-    'Archive' : 'Archive\\'
+    'Archive': 'Archive\\'
 
 }
 
 ALLOWED_EXTENSIONS = set(['pem'])
-app.config['UPLOAD_FOLDER'] = folders['UPLOAD_FOLDER']
 
 SHA_DIC={'SHA2' : {
             '224': hashes.SHA224(),
@@ -32,6 +35,25 @@ SHA_DIC={'SHA2' : {
             '384': hashes.SHA3_384(),
             '512': hashes.SHA3_512(),
 }}
+
+AES_DIC = {
+    'CBC':modes.CBC,
+    'CTR':modes.CTR,
+    'GCM':modes.GCM,
+}
+
+tl = Timeloop()
+@tl.job(interval=timedelta(seconds=3600))
+def cleanup_archive():
+
+    filelist = [f for f in os.listdir(folders['Archive'])]
+    for f in filelist:
+        os.remove(os.path.join(folders['Archive'], f))
+
+
+
+
+
 
 
 def verify_sign(inputbuf, keybuf, signbuf, digest, ecosystem):
@@ -99,7 +121,7 @@ def key_pair_serilized_and_zipped(private_key, public_key, folder):
 
 @app.route('/')
 def home_page():
-    return render_template('base.html')
+    return render_template('index.html')
 
 @app.route('/createDS', methods=['GET', 'POST'])
 def DS_sign():
@@ -170,8 +192,6 @@ def generate_ECC_key_pair():
         curve = ec._CURVE_TYPES[key_curve]
         ecc_private_key = ec.generate_private_key( curve, default_backend())
         ecc_public_key = ecc_private_key.public_key()
-        raw_key = ecc_private_key.private_bytes( encoding = serialization.Encoding.PEM, format = serialization.PrivateFormat.TraditionalOpenSSL,
-        encryption_algorithm = serialization.NoEncryption())
 
         zip_path = key_pair_serilized_and_zipped(ecc_private_key, ecc_public_key, key_name)
         result = send_file(zip_path, as_attachment=True,
@@ -179,7 +199,6 @@ def generate_ECC_key_pair():
         return result
 
     return render_template('ECCkeypair.html')
-
 
 @app.route('/verifyDS', methods=['GET', 'POST'])
 def DS_verify():
@@ -270,7 +289,6 @@ def generate_hmac():
             flash('No file part')
             return redirect(request.url)
 
-
         input = request.files['file']
         key =  request.files['key']
         HashSelector = request.form['HashSelector']
@@ -286,14 +304,14 @@ def generate_hmac():
             return redirect(request.url)
 
         inputbuf = input.read()
-        keybuf = input.read()
+        keybuf = key.read()
         selected_hash= SHA_DIC[FamilySelector][HashSelector]
 
         h = hmac.HMAC(keybuf, selected_hash, backend=default_backend())
         h.update(inputbuf)
 
-        with open(sign_file_name, 'w+') as sign_file:
-            res = h.finalize().hex()
+        with open(sign_file_name, 'wb') as sign_file:
+            res = h.finalize()
             sign_file.write(res)
 
         sha_path = shutil.move(sign_file.name, folders['Archive'] + sign_file.name)
@@ -303,6 +321,186 @@ def generate_hmac():
 
     return render_template('CreateHMAC.html')
 
+@app.route('/VerifyHMAC', methods=['GET', 'POST'])
+def verify_hmac():
+    if request.method == 'POST':
+        # check if the post request has the file part
+        if 'file' not in request.files:
+            flash('No file part')
+            return redirect(request.url)
+
+        input = request.files['file']
+        key =  request.files['key']
+        sign = request.files['sign']
+        HashSelector = request.form['HashSelector']
+        FamilySelector = request.form['FamilySelector']
+
+
+        if input.filename == '':
+            flash('No selected input file')
+            return redirect(request.url)
+
+        if key.filename == '':
+            flash('No selected key file')
+            return redirect(request.url)
+
+        if sign.filename == '':
+            flash('No selected signature file')
+            return redirect(request.url)
+
+        inputbuf = input.read()
+        keybuf = key.read()
+        signbuf = sign.read()
+        selected_hash= SHA_DIC[FamilySelector][HashSelector]
+
+        h = hmac.HMAC(keybuf, selected_hash, backend=default_backend())
+        h.update(inputbuf)
+        try:
+            h.verify(signbuf)
+        except InvalidSignature:
+            flash('Verification Failed ')
+            return redirect(request.url)
+
+        flash('Verification Succeed')
+    return render_template('verifyHMAC.html')
+
+@app.route('/AESkey.html', methods=['GET', 'POST'])
+def generate_AES_key():
+    if request.method == 'POST':
+
+        size = request.form['SizeSelector']
+        key_file_name = request.form['key_name'] + '.bin' if not request.form['key_name'] == '' else 'AES' + size + '_key.bin'
+        with open(key_file_name, 'wb') as key_file:
+            key_file.write(os.urandom(int(int(size)/8)))
+
+        key_path = shutil.move(key_file.name, folders['Archive'] + key_file.name)
+        result = send_file(key_path , as_attachment=True,
+                           attachment_filename= key_file_name)
+        return result
+
+    return render_template('AESkey.html')
+
+@app.route('/AESEnc.html', methods=['GET', 'POST'])
+def AES_enc():
+    if request.method == 'POST':
+        # check if the post request has the file part
+        if 'key_name' not in request.files:
+            flash('No file part')
+            return redirect(request.url)
+        if 'IV_name' not in request.files:
+            flash('No IV part')
+            return redirect(request.url)
+        if 'input_name' not in request.files:
+            flash('No plain text part')
+            return redirect(request.url)
+
+        plain_text = request.files['input_name']
+        key = request.files['key_name']
+        IV= request.files['IV_name']
+        mode = request.form['ModeSelector']
+
+        adata = None
+        if 'adata' in request.files:
+            adata = request.files['adata']
+
+        cipher_file_name = request.form['output_name'] + '.bin' if not request.form[
+                                                                     'output_name'] == '' else 'AES_' + mode + '_cipher_text.bin'
+        if  plain_text.filename == '':
+            flash('No selected plain text file')
+            return redirect(request.url)
+
+        if key.filename == '':
+            flash('No selected key file')
+            return redirect(request.url)
+
+        if IV.filename == '':
+            flash('No selected IV file')
+            return redirect(request.url)
+
+        plain_text_buf = plain_text.read()
+        key_buf = key.read()
+        IV_buf = IV.read()
+
+        if( mode != 'GCM'):
+            cipher = Cipher(algorithms.AES(key_buf), AES_DIC[mode](IV_buf), backend=default_backend())
+            encryptor = cipher.encryptor()
+            ct = encryptor.update(plain_text_buf) + encryptor.finalize()
+
+        else:
+            aesgcm = AESGCM(key_buf)
+            ct = aesgcm.encrypt(IV_buf, plain_text_buf, adata.read() if adata != None else None)
+
+        with open(cipher_file_name, 'wb') as ct_file:
+            ct_file.write(ct)
+
+        ct_path = shutil.move(ct_file.name, folders['Archive'] + ct_file.name)
+        result = send_file(ct_path , as_attachment=True, attachment_filename= cipher_file_name)
+        return result
+
+    return render_template('AESEnc.html')
+
+@app.route('/AESDec.html', methods=['GET', 'POST'])
+def AES_dec():
+    if request.method == 'POST':
+        # check if the post request has the file part
+        if 'key_name' not in request.files:
+            flash('No file part')
+            return redirect(request.url)
+        if 'IV_name' not in request.files:
+            flash('No IV part')
+            return redirect(request.url)
+        if 'input_name' not in request.files:
+            flash('No cipher text part')
+            return redirect(request.url)
+
+        cipher_text = request.files['input_name']
+        key = request.files['key_name']
+        IV= request.files['IV_name']
+        mode = request.form['ModeSelector']
+        adata = None
+        if 'adata' in request.files:
+            adata = request.files['adata']
+
+        plain_file_name = request.form['output_name'] + '.bin' if not request.form[
+                                                                     'output_name'] == '' else 'AES_' + mode + '_plain_text.bin'
+        if  cipher_text.filename == '':
+            flash('No selected cipher text file')
+            return redirect(request.url)
+
+        if key.filename == '':
+            flash('No selected key file')
+            return redirect(request.url)
+
+        if IV.filename == '':
+            flash('No selected IV file')
+            return redirect(request.url)
+
+        cipher_text_buf = cipher_text.read()
+        key_buf = key.read()
+        IV_buf = IV.read()
+
+        if( mode != 'GCM'):
+            cipher = Cipher(algorithms.AES(key_buf), AES_DIC[mode](IV_buf), backend=default_backend())
+            decryptor = cipher.decryptor()
+            pt =decryptor.update(cipher_text_buf) + decryptor.finalize()
+        else:
+            aesgcm = AESGCM(key_buf)
+            try:
+                pt = aesgcm.decrypt(IV_buf, cipher_text_buf, adata.read() if adata != None else None)
+
+            except InvalidTag:
+                flash('AES GCM authentication tag failed')
+                return redirect(request.url)
+
+        with open(plain_file_name, 'wb') as pt_file:
+            pt_file.write(pt)
+
+        pt_path = shutil.move(pt_file.name, folders['Archive'] + pt_file.name)
+        result = send_file(pt_path, as_attachment=True, attachment_filename=plain_file_name)
+        return result
+
+    return render_template('AESDec.html')
 
 if __name__ == '__main__':
+    tl.start()
     app.run(port=5000, debug=True)

@@ -1,0 +1,55 @@
+{% extends "base.html" %}
+{% block content %}
+<div align="center"><h3> AES Encryption</h3> </div>
+<span>
+    <div class="container" align="left" style="padding-top:30px;padding-bottom:30px">
+        <form method=post enctype=multipart/form-data>
+            <div class="form-group">
+                <label for="ModeSelector">Select Mode of Operation</label>
+                <select name="ModeSelector" class="form-control" id="ModeSelector" onchange="updateadata();">
+                  <option value=CBC>CBC</option>
+                    <option value=CTR >CTR</option>
+                    <option value=GCM >GCM</option>
+
+                </select>
+              </div>
+                <div class="form-group">
+                    <label for="key_name">Key File Name</label>
+                    <input  type="file" name="key_name" class="form-control" id="key_name" placeholder="Enter key file name">
+                </div>
+                <div class="form-group">
+                    <label for="IV_name">IV File Name</label>
+                    <input type="file" name="IV_name" class="form-control" id="IV_name" placeholder="Enter IV file name">
+                </div>
+                <div class="form-group">
+                    <label for="input_name">Plain Text File Name</label>
+                    <input type="file" name="input_name" class="form-control" id="input_name" placeholder="Enter plain text file name">
+                </div>
+                <div class="form-group">
+                    <label for="adata">Additional Data File Name (GCM only)</label>
+                    <input type="file" name="adata" class="form-control" id="adata" placeholder="Enter additional data file name" disabled>
+                </div>
+                <div class="form-group">
+                    <label for="output_name">Cipher Text File Name</label>
+                    <input name="output_name" class="form-control" id="output_name" placeholder="Enter cipher text file name">
+                </div>
+                <input type=submit value=Send>
+        </form>
+    </div>
+</span>
+
+<script>
+function updateadata() {
+    mode =document.getElementById("ModeSelector")
+    adata = document.getElementById("adata")
+    if (mode.value != "GCM"){
+        adata.disabled = true;
+    }
+    else{
+        adata.disabled = false;
+    }
+}
+</script>
+
+{% endblock %}
+

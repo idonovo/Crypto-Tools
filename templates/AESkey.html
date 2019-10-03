@@ -1,0 +1,24 @@
+{% extends "base.html" %}
+{% block content %}
+<div align="center"><h3>Create AES Key</h3> </div>
+<span>
+    <div class="container" align="left" style="padding-top:30px;padding-bottom:30px">
+        <form method=post enctype=multipart/form-data>
+            <div class="form-group">
+                <label for="SizeSelector">Select Key Size</label>
+                <select name="SizeSelector" class="form-control" id="SizeSelector">
+                  <option>128</option>
+                    <option>196</option>
+                    <option>256</option>
+                </select>
+              </div>
+                <div class="form-group">
+                    <label for="key_name">Key File Name</label>
+                    <input name="key_name" class="form-control" id="key_name" placeholder="Enter key file name">
+                </div>
+                <input type=submit value=Send>
+        </form>
+    </div>
+</span>
+
+{% endblock %}>

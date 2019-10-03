@@ -1,2 +1,2 @@
 # Crypto-Tools
-web service for cryptographic actions
+web service for cryptographic operations
