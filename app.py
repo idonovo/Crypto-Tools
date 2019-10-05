@@ -9,7 +9,6 @@ from cryptography.hazmat.primitives.asymmetric import padding, rsa, ec
 from cryptography.exceptions import InvalidSignature,InvalidTag
 from cryptography.hazmat.primitives.ciphers import Cipher, algorithms, modes
 from cryptography.hazmat.primitives.ciphers.aead import AESGCM
-from timeloop import Timeloop
 from datetime import timedelta
 
 
@@ -41,19 +40,22 @@ AES_DIC = {
     'GCM':modes.GCM,
 }
 
-tl = Timeloop()
-@tl.job(interval=timedelta(seconds=3600))
-def cleanup_archive():
+def asymmetric_enc_dec(keybuf, text_buf, digest, cipher_file_name, enc):
 
-    filelist = [f for f in os.listdir(folders['Archive'])]
-    for f in filelist:
-        os.remove(os.path.join(folders['Archive'], f))
+    hash = hashes.SHA256() if digest == 'SHA256' else hashes.SHA512()
 
+    if enc is True:
+        key = serialization.load_pem_public_key(keybuf, backend=default_backend())
+        ct = key.encrypt(text_buf, padding.OAEP(mgf=padding.MGF1(algorithm=hash),algorithm=hash,label=None))
+    else:
+        key = serialization.load_pem_private_key(keybuf,  password=None, backend=default_backend())
+        ct = key.decrypt(text_buf, padding.OAEP(mgf=padding.MGF1(algorithm=hash), algorithm=hash, label=None))
 
+    with open(cipher_file_name, 'wb') as filehandle:
+        filehandle.write(ct);
+        filehandle.close()
 
-
-
-
+    return shutil.move(filehandle.name, folders['Archive'] + filehandle.name)
 
 def verify_sign(inputbuf, keybuf, signbuf, digest, ecosystem):
     pkey = serialization.load_pem_public_key(keybuf ,backend=default_backend())
@@ -363,7 +365,7 @@ def verify_hmac():
         flash('Verification Succeed')
     return render_template('verifyHMAC.html')
 
-@app.route('/AESkey.html', methods=['GET', 'POST'])
+@app.route('/AESkey', methods=['GET', 'POST'])
 def generate_AES_key():
     if request.method == 'POST':
 
@@ -379,7 +381,7 @@ def generate_AES_key():
 
     return render_template('AESkey.html')
 
-@app.route('/AESEnc.html', methods=['GET', 'POST'])
+@app.route('/AESEnc', methods=['GET', 'POST'])
 def AES_enc():
     if request.method == 'POST':
         # check if the post request has the file part
@@ -438,7 +440,7 @@ def AES_enc():
 
     return render_template('AESEnc.html')
 
-@app.route('/AESDec.html', methods=['GET', 'POST'])
+@app.route('/AESDec', methods=['GET', 'POST'])
 def AES_dec():
     if request.method == 'POST':
         # check if the post request has the file part
@@ -500,6 +502,77 @@ def AES_dec():
 
     return render_template('AESDec.html')
 
+@app.route('/AsymmetricEnc', methods=['GET', 'POST'])
+def asymmetric_enc():
+    if request.method == 'POST':
+        # check if the post request has the file part
+        if 'key' not in request.files:
+            flash('No key part')
+            return redirect(request.url)
+        if 'ptext' not in request.files:
+            flash('No plain text part')
+            return redirect(request.url)
+
+        ptext = request.files['ptext']
+        key = request.files['key']
+        digest = request.form['DigestSelector']
+        cipher_file_name = request.form['ctext_name'] + '.bin' if not request.form['ctext_name'] == '' else 'RSA_cipher_text.bin'
+
+        if  ptext.filename == '':
+            flash('No selected plain text file')
+            return redirect(request.url)
+
+        if key.filename == '':
+            flash('No selected key file')
+            return redirect(request.url)
+
+        plain_text_buf = ptext.read()
+        keybuf = key.read()
+
+        if str(keybuf).find('BEGIN PUBLIC KEY') == -1:
+            flash('Wrong key type for chosen operation')
+            return redirect(request.url)
+
+        result = send_file(asymmetric_enc_dec(keybuf, plain_text_buf, digest, cipher_file_name, True), as_attachment=True, attachment_filename=cipher_file_name)
+        return result
+
+    return render_template('AsymmetricEnc.html')
+
+@app.route('/AsymmetricDec', methods=['GET', 'POST'])
+def asymmetric_dec():
+    if request.method == 'POST':
+        # check if the post request has the file part
+        if 'key' not in request.files:
+            flash('No key part')
+            return redirect(request.url)
+        if 'ctext' not in request.files:
+            flash('No cipher text part')
+            return redirect(request.url)
+
+        ctext = request.files['ctext']
+        key = request.files['key']
+        digest = request.form['DigestSelector']
+        plain_file_name = request.form['ptext_name'] + '.bin' if not request.form['ptext_name'] == '' else 'RSA_plain_text.bin'
+
+        if  ctext.filename == '':
+            flash('No selected cipher text file')
+            return redirect(request.url)
+
+        if key.filename == '':
+            flash('No selected key file')
+            return redirect(request.url)
+
+        cipher_text_buf = ctext.read()
+        keybuf = key.read()
+
+        if str(keybuf).find('BEGIN RSA PRIVATE KEY') == -1:
+            flash('Wrong key type for chosen operation')
+            return redirect(request.url)
+
+        result = send_file(asymmetric_enc_dec(keybuf, cipher_text_buf, digest, plain_file_name, False), as_attachment=True, attachment_filename=plain_file_name)
+        return result
+
+    return render_template('AsymmetricDec.html')
+
 if __name__ == '__main__':
-    tl.start()
-    app.run(port=5000, debug=True)
+    app.run()
