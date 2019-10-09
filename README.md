@@ -9,10 +9,10 @@ Generate RSA\ECC key pairs.
 RSA\ECC Sign\Verify. 
 RSA Encryption\Decryption.
 
-+ PKI
++ PKI: 
 Will be included in next version.
 
-+ Mac\Hmac
++ Mac\Hmac:
 Generate Hash.
 Generate Hmac.
 
