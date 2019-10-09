@@ -43,8 +43,9 @@
          PKI
         </a>
         <div class="dropdown-menu" aria-labelledby="navbarDropdown">
-          <a class="dropdown-item" href="#">Create CA Certificate</a>
-          <a class="dropdown-item" href="#">Create Certificate</a>
+          <a class="dropdown-item"href="{{ url_for('self_cert') }}">Create Self Signed Certificate</a>
+            <a class="dropdown-item" href="#">Create CSR Request</a>
+          <a class="dropdown-item" href="#">Create CA Signed Certificate</a>
         </div>
       </li>
        <li class="nav-item dropdown">

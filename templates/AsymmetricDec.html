@@ -1,0 +1,31 @@
+{% extends "base.html" %}
+{% block content %}
+<div align="center"><h3> Asymmetric Decryption</h3> </div>
+<span>
+    <div class="container" align="left" style="padding-top:30px;padding-bottom:30px">
+        <form method=post enctype=multipart/form-data>
+              <div class="form-group">
+                <label for="DigestSelector">Select Digest</label>
+                <select name="DigestSelector" class="form-control" id="DigestSelector">
+                  <option>SHA256</option>
+                  <option>SHA512</option>
+                </select>
+              </div>
+                <div class="form-group">
+                    <label for="key">Select private key file</label>
+                    <input type="file" class="form-control-file" name=key id="key">
+              </div>
+                <div class="form-group">
+                    <label for="ctext">Select cipher text file to encrypt</label>
+                    <input type="file" class="form-control-file" name="ctext" id="ctext">
+              </div>
+                <div class="form-group">
+                    <label for="ptext_name">Plain Text File Name</label>
+                    <input name="ptext_name" class="form-control" id="ptext_name" placeholder="Enter plain text file name">
+                </div>
+                <input type=submit value=Send>
+        </form>
+    </div>
+</span>
+
+{% endblock %}

@@ -574,5 +574,9 @@ def asymmetric_dec():
 
     return render_template('AsymmetricDec.html')
 
+@app.route('/SelfSignedCert', methods=['GET', 'POST'])
+def self_cert():
+    return render_template('SelfSignedCert.html')
+
 if __name__ == '__main__':
     app.run()
