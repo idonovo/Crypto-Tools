@@ -1,6 +1,9 @@
 # Crypto-Tools
 web service for cryptographic operations based on python cryptography and flask web server.
-THe user can download the requsted operation output file.
+
+Dependencies: Python 3.7 , flask and cryptography packages.
+
+The user can download the requsted operation output file.
 
 The app includes the following tools:
 
